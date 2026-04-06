@@ -2,10 +2,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import  { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
+import { Box } from "@mui/material";
 import CurrentTurnDisplay from "@/components/game/CurrentPlayer";
 import DynamicGridIntegrated from "@/components/game/GridComponent";
 import TicTacToeBackdropLoader from "@/components/shared/Loader";
-
+import CustomJoyride from "@/components/shared/CustomJoyride";
+import { useTour } from "@/hooks/useTour";
 import { useSocket } from "@/context";
 import { useGame } from "@/queries";
 
@@ -18,6 +20,19 @@ const BotPlayPage = () => {
   const { data: gameResp, isLoading, isError } = useGame(gameId as string);
 
   const [game, setGame] = useState<any>(null);
+
+  // const { runTour, handleTourComplete } = useTour("bot-play");
+  // const tourSteps: any[] = [
+  //   {
+  //     target: "#tour-play-players",
+  //     content: "These are the players in the bot match. Keep an eye out for the 'Your Turn' indicator!",
+  //     disableBeacon: true,
+  //   },
+  //   {
+  //     target: "#tour-play-grid",
+  //     content: "This is the game board. Place your move here.",
+  //   }
+  // ];
 
   useEffect(() => {
     if (gameResp) setGame(gameResp);

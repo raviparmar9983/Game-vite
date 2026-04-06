@@ -1,120 +1,115 @@
+import CurrentTurnDisplay from "@/components/game/CurrentPlayer";
+import DynamicGridIntegrated from "@/components/game/GridComponent";
+import TicTacToeBackdropLoader from "@/components/shared/Loader";
+import { useSocket } from "@/context";
+import { useGame } from "@/queries";
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Box, Typography, Grid, Card } from "@mui/material";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-import { useSocket } from "@/context";
-import TicTacToeBackdropLoader from "@/components/shared/Loader";
-import * as Icons from "@/icons/GameIcon";
-
-interface Player {
-  _id: string;
-  userName: string;
-  icon?: string;
-}
-
-const PlayPage = () => {
-  const { id: gameId } = useParams();
+const Page = () => {
+  const params = useParams();
   const navigate = useNavigate();
-
+  const gameId = params["id"] as string;
   const { socket } = useSocket();
 
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [grid, setGrid] = useState<string[][]>([]);
-  const [currentTurn, setCurrentTurn] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: gameResp, isLoading, isError } = useGame(gameId);
 
-  // Join game
+  const [game, setGame] = useState<any>(null);
+
   useEffect(() => {
-    if (!socket || !gameId) return;
+    if (gameResp) setGame(gameResp);
+  }, [gameResp]);
 
-    socket.emit("joinGame", { gameId });
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit("joingameplay", { gameId });
+    const handler = (updatedGame: any) => {
+      setGame(updatedGame);
+    };
 
-    socket.on("gameState", (data) => {
-      setPlayers(data.players);
-      setGrid(data.grid);
-      setCurrentTurn(data.currentTurn);
-      setLoading(false);
+    socket.on("GAME_UPDATED", handler);
+    socket.on("GAME_COMPLETE", () => {
+      navigate(`/game/result/${gameId}`, { replace: true });
     });
+    return () => {
+      socket.off("GAME_COMPLETE");
+      socket.off("GAME_UPDATED", handler);
+    };
+  }, [socket]);
 
-    socket.on("gameOver", (data) => {
-      toast.success(`Winner: ${data.winner}`);
-    });
+  useEffect(() => {
+    if (!socket) return;
 
-    socket.on("ERROR", (err) => {
-      toast.error(err.message);
+    const onSocketError = (data: { message: string }) => {
+      const msg = data?.message || "Something went wrong";
+
+      toast.error(msg);
+
+      // ✅ REDIRECT ONLY WHEN GAME CANNOT CONTINUE
+      if (msg.includes("game_not_found") || msg.includes("You are not Part of this game")) {
+        // kicked / invalid room
+        navigate("/");
+
+        return;
+      }
+
+      if (msg.includes("Game not Start")) {
+        // game is still in lobby
+        navigate(`/game/lobby/${gameId}`);
+        return;
+      }
+
+      if (msg.includes("completed")) {
+        // game finished → move to result page later if you make one
+        navigate(`/game/result/${gameId}`);
+        return;
+      }
+
+      // ✅ NO REDIRECT FOR THESE (JUST TOAST)
+      if (msg.includes("Wrong turn") || msg.includes("Cell already filled")) {
+        return;
+      }
+
+      // ✅ FAILSAFE
       navigate("/");
-    });
+    };
+
+    socket.on("ERROR", onSocketError);
 
     return () => {
-      socket.off("gameState");
-      socket.off("gameOver");
-      socket.off("ERROR");
+      socket.off("ERROR", onSocketError);
     };
   }, [socket, gameId]);
 
-  const handleMove = (row: number, col: number) => {
+  useEffect(() => {
+    if (isError) {
+      toast.error("Something went wrong");
+      navigate("/");
+    }
+  }, [isError]);
+
+  if (isLoading || !game) {
+    return <TicTacToeBackdropLoader />;
+  }
+
+  const handleCellClick = (data: any) => {
     if (!socket || !gameId) return;
-
-    socket.emit("makeMove", { gameId, row, col });
+    socket.emit("PLAY_MOVE", { ...data, gameId });
   };
-
-  if (loading) return <TicTacToeBackdropLoader />;
-
   return (
-    <Box p={3}>
-      <Typography variant="h5" mb={3}>
-        Game Room
-      </Typography>
+    <>
+      <CurrentTurnDisplay players={game.players} currTurn={game.currTurn} />
 
-      {/* Players */}
-      <Grid container spacing={2} mb={4}>
-        {players.map((player) => {
-          const IconComponent = player.icon ? (Icons as any)[player.icon] : null;
-
-          return (
-            <Grid size={{ xs: 6 }} key={player._id}>
-              <Card sx={{ p: 2 }}>
-                <Typography fontWeight={600}>{player.userName}</Typography>
-
-                {IconComponent && (
-                  <Box mt={1}>
-                    <IconComponent width={30} height={30} />
-                  </Box>
-                )}
-
-                {currentTurn === player._id && (
-                  <Typography color="primary">Your Turn</Typography>
-                )}
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-
-      {/* Game Grid */}
-      <Grid container spacing={1} maxWidth={300}>
-        {grid.map((row, rIndex) =>
-          row.map((cell, cIndex) => (
-            <Grid size={{ xs: 4 }} key={`${rIndex}-${cIndex}`}>
-              <Card
-                sx={{
-                  height: 80,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
-                onClick={() => handleMove(rIndex, cIndex)}
-              >
-                <Typography variant="h4">{cell}</Typography>
-              </Card>
-            </Grid>
-          ))
-        )}
-      </Grid>
-    </Box>
+      <DynamicGridIntegrated
+        gridSize={game.size}
+        players={game.players}
+        currTurn={game.currTurn}
+        gridData={game.grid}
+        onMove={(data) => handleCellClick(data)}
+      />
+    </>
   );
 };
 
-export default PlayPage;
+export default Page;

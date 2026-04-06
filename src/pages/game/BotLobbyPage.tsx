@@ -19,6 +19,8 @@ import { useGame } from "@/queries";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEY } from "@/constants/enums";
+import CustomJoyride from "@/components/shared/CustomJoyride";
+import { useTour } from "@/hooks/useTour";
 
 interface Player {
   _id: string;
@@ -53,6 +55,27 @@ const BotLobbyPage = () => {
 
   const myPlayer = players.find((p) => p._id === currentUser._id);
   const mySelectedIcon = myPlayer?.icon || selectedIcon;
+
+  const { runTour, handleTourComplete } = useTour("bot-lobby");
+  const tourSteps: any[] = [
+    {
+      target: "#tour-lobby-room-code",
+      content: "This is your Room Code. Share it with your friends so they can join!",
+      disableBeacon: true,
+    },
+    {
+      target: "#tour-lobby-icons",
+      content: "Claim your identity before the game begins. Select an available icon.",
+    },
+    {
+      target: "#tour-lobby-players",
+      content: "Here you can see who has joined and if they are ready.",
+    },
+    {
+      target: "#tour-lobby-start-game",
+      content: "Once everyone is ready, the Host can start the game here!",
+    }
+  ];
 
   useEffect(() => {
     if (!socket || !gameId) return;
@@ -170,13 +193,17 @@ const BotLobbyPage = () => {
 
   return (
     <Box>
-      <CustomeCodeChip label={gameResp?.roomCode ?? ""} />
+      <CustomJoyride steps={tourSteps} run={runTour} onComplete={handleTourComplete} />
+      
+      <Box id="tour-lobby-room-code" display="inline-block" mb={2}>
+        <CustomeCodeChip label={gameResp?.roomCode ?? ""} />
+      </Box>
 
       <Typography variant="h5" gutterBottom>
         Choose Your Icon
       </Typography>
 
-      <Grid container spacing={2} mb={4}>
+      <Grid id="tour-lobby-icons" container spacing={2} mb={4}>
         {iconKeys.map((iconName) => {
           const IconComponent = (Icons as any)[iconName];
 
@@ -192,8 +219,17 @@ const BotLobbyPage = () => {
             <Grid size={{ xs: 3 }} key={iconName}>
               <Card
                 sx={{
-                  border: isSelected ? "2px solid #1976d2" : "1px solid #ddd",
+                  border: isSelected ? "2px solid #00ff88" : "1px solid rgba(255,255,255,0.1)",
                   opacity: disabled ? 0.4 : 1,
+                  transition: "all 0.3s ease",
+                  transform: isSelected ? "scale(1.1)" : "scale(1)",
+                  boxShadow: isSelected ? "0 0 15px rgba(0, 255, 136, 0.6)" : "none",
+                  zIndex: isSelected ? 10 : 1,
+                  "&:hover": {
+                    transform: disabled ? "none" : "scale(1.05)",
+                    borderColor: disabled ? "" : "#00ccff",
+                    boxShadow: disabled ? "none" : "0 0 10px rgba(0, 204, 255, 0.4)"
+                  }
                 }}
               >
                 <CardActionArea
@@ -218,7 +254,7 @@ const BotLobbyPage = () => {
         </Typography>
       )}
 
-      <Box mt={3} mb={4}>
+      <Box id="tour-lobby-start-game" mt={3} mb={4}>
         <Button variant="contained" onClick={handleGameStart}>
           Start Game
         </Button>
@@ -226,7 +262,7 @@ const BotLobbyPage = () => {
 
       <Typography variant="h6">Players in Room</Typography>
 
-      <Grid container spacing={2}>
+      <Grid id="tour-lobby-players" container spacing={2}>
         {players.map((player) => {
           const IconComponent = player.icon
             ? (Icons as any)[player.icon]

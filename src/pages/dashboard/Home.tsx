@@ -12,6 +12,8 @@ import { JoinRoomForm } from "@/components/game/JoinRoom";
 import GameNavbar from "@/components/shared/NavBar";
 import { DailyRewardModal } from "@/components/game/DailyReward";
 import { CreateBotRoomForm } from "@/components/game/CreateBotRoom";
+import CustomJoyride from "@/components/shared/CustomJoyride";
+import { useTour } from "@/hooks/useTour";
 
 const DashBoardPage = () => {
   const navigate = useNavigate();
@@ -32,6 +34,27 @@ const DashBoardPage = () => {
 
   const { data: user, isLoading } = useUserProfileQuery();
   const dispatch = useAppDistpatch();
+  
+  const { runTour, handleTourComplete } = useTour("home");
+  const tourSteps: any[] = [
+    {
+      target: "#tour-home-welcome",
+      content: "Welcome to the game! This is your central dashboard.",
+      disableBeacon: true,
+    },
+    {
+      target: "#tour-home-play-now",
+      content: "Want to jump right in? Click here to practice against a Bot.",
+    },
+    {
+      target: "#tour-home-create-room",
+      content: "Play with friends! Create a private multiplayer room here.",
+    },
+    {
+      target: "#tour-home-join-room",
+      content: "Already have a Room Code? Join an existing game here.",
+    }
+  ];
 
   useEffect(() => {
     if (user && !isLoading) dispatch(setUser(user.data));
@@ -47,6 +70,7 @@ const DashBoardPage = () => {
 
   return (
     <>
+      <CustomJoyride steps={tourSteps} run={runTour} onComplete={handleTourComplete} />
       <GameNavbar userName={user?.data?.userName} coins={user?.data?.coins} />
 
       <Box
@@ -99,7 +123,7 @@ const DashBoardPage = () => {
             animation: "floatUp 6s ease-in-out infinite",
           }}
         >
-          <Typography variant="h4" fontWeight={800} textAlign="center">
+          <Typography id="tour-home-welcome" variant="h4" fontWeight={800} textAlign="center">
             Welcome,{" "}
             <Box component="span" sx={{ color: "#1976d2" }}>
               {user?.data?.userName}
@@ -110,19 +134,19 @@ const DashBoardPage = () => {
             Ready to create your next game room?
           </Typography>
 
-          <Box textAlign="center" mb={2}>
+          <Box id="tour-home-play-now" textAlign="center" mb={2}>
             <CustomButton onClick={handleCreateBotOpen} fullWidth>
               Play now
             </CustomButton>
           </Box>
 
-          <Box textAlign="center">
+          <Box id="tour-home-create-room" textAlign="center">
             <CustomButton onClick={handleOpen} fullWidth>
               + Create Game Room
             </CustomButton>
           </Box>
 
-          <Grid container spacing={2} mt={2}>
+          <Grid id="tour-home-join-room" container spacing={2} mt={2}>
             {[
               {
                 label: "Join Room",
