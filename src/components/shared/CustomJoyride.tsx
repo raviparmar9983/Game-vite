@@ -13,6 +13,8 @@ const CustomJoyride: React.FC<CustomJoyrideProps> = ({
   run,
   onComplete,
 }) => {
+  const JoyrideComponent = Joyride as any;
+
   const handleJoyrideCallback = (data: { status?: string }) => {
     const { status } = data;
 
@@ -25,7 +27,7 @@ const CustomJoyride: React.FC<CustomJoyrideProps> = ({
   };
 
   return (
-    <Joyride
+    <JoyrideComponent
       callback={handleJoyrideCallback}
       continuous
       run={run}

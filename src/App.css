@@ -1,0 +1,14 @@
+.sdk-auth-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 1400;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 183, 77, 0.95);
+  color: #231500;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}

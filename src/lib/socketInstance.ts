@@ -1,39 +1,28 @@
 import { io, Socket } from "socket.io-client";
-import Cookies from "js-cookie";
-import { environment } from "./env";
 import toast from "react-hot-toast";
+import { clearBackendSession, getBackendAccessToken } from "./authSession";
+import { environment } from "./env";
 
 let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    const token = Cookies.get("accessToken");
-
     socket = io(environment.SOCKET_URL, {
-      auth: {
-        token, // 🔐 send jwt token
+      auth: (callback) => {
+        callback({
+          token: getBackendAccessToken(),
+        });
       },
       transports: ["websocket"],
       reconnection: true,
     });
 
-    socket.on("connect", () => {
-      // console.log("Socket connected:", socket?.id);
-    });
-
-    socket.on("disconnect", () => {
-      // console.log("Socket disconnected");
-    });
-
-    socket.on("connect_error", (err: any) => {
+    socket.on("connect_error", (err: { message?: string }) => {
       if (err?.message === "Invalid Token!!") {
-        Cookies.remove("accessToken");
-        Cookies.remove("refreshToken");
-
-        window.location.href = "/auth/login";
+        clearBackendSession();
       }
 
-      toast.error(err.message || "Socket connection error");
+      toast.error(err?.message || "Socket connection error");
     });
   }
 
@@ -45,4 +34,4 @@ export const disconnectSocket = () => {
     socket.disconnect();
     socket = null;
   }
-};  
+};

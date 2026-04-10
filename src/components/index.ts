@@ -8,7 +8,3 @@ export * from "./shared/CustomSelect";
 //  game
 export * from "./game/CreateGameForm";
 export * from "./game/CreateRoom";
-
-//routes
-export * from "./routes/ProtectedRoute";
-export * from "./routes/PublicRoute";
